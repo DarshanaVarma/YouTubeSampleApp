@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "937155713360",
+    "project_id": "optimum-parity-186612"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:937155713360:android:8010409e6aadb35f",
+        "android_client_info": {
+          "package_name": "com.example.demo.youtubesampleapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "937155713360-ffibcddjqia7ott032m9qatju9mg63p9.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "937155713360-a2als8qn0qan65mnpuqm4ca88k960nv6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.demo.youtubesampleapp",
+            "certificate_hash": "e3c306bb0807c13969639425afc70b3b13a8f0e6"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVG1We2vxdFffegrvN6kOCFp8gn5Y0WP4"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
