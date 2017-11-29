@@ -44,6 +44,11 @@
             android:id="@+id/subscribe"
             android:background="@drawable/rouned_corner_shadow"
             android:text="@string/btn_skip_intro" />
+
+        <TextView
+            android:layout_width="200dp"
+            android:layout_height="60dp"
+            android:id="@+id/mOutputText"/>
     </LinearLayout>
 
 </RelativeLayout>
