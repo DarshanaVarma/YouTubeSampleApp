@@ -43,6 +43,8 @@ dependencies {
     compile 'com.google.apis:google-api-services-youtube:v3-rev182-1.22.0'
     testCompile 'junit:junit:4.12'
     compile 'pub.devrel:easypermissions:0.3.0'
+
+
 }
 
 apply plugin: 'com.google.gms.google-services'

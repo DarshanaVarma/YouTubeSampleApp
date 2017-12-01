@@ -1,12 +1,9 @@
 package com.example.demo.youtubesampleapp;
 
-import android.*;
-import android.Manifest;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.View;
@@ -28,17 +25,19 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.ExponentialBackOff;
+import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.YouTubeScopes;
-import com.google.api.services.youtube.model.Channel;
-import com.google.api.services.youtube.model.ChannelListResponse;
+import com.google.api.services.youtube.model.ResourceId;
+import com.google.api.services.youtube.model.Subscription;
+import com.google.api.services.youtube.model.SubscriptionSnippet;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
 
-import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class LandingActivity extends YouTubeBaseActivity implements YouTubePlayer.OnInitializedListener {
     /*for using youutbe player view*/
@@ -56,6 +55,8 @@ public class LandingActivity extends YouTubeBaseActivity implements YouTubePlaye
     static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
     private static final String PREF_ACCOUNT_NAME = "accountName";
     private TextView mOutputText;
+    private static Retrofit retrofit = null;
+
 
 
     @Override
@@ -69,6 +70,8 @@ public class LandingActivity extends YouTubeBaseActivity implements YouTubePlaye
         mOutputText = (TextView) findViewById(R.id.mOutputText);
 
 
+
+
         utils = new PreferenceUtils(this);
         // Initializing video player with developer key
         youTubeView.initialize(Config.YOUTUBE_KEY, this);
@@ -79,6 +82,8 @@ public class LandingActivity extends YouTubeBaseActivity implements YouTubePlaye
                 .setBackOff(new ExponentialBackOff());
 
     }
+
+
 
     @Override
     public void onInitializationFailure(YouTubePlayer.Provider provider,
@@ -101,76 +106,34 @@ public class LandingActivity extends YouTubeBaseActivity implements YouTubePlaye
             // Use cueVideo() method, if you don't want to play it automatically
             player.loadVideo(Config.YOUTUBE_VIDEO_CODE);
 
-            // Hiding player controls
-            player.setPlayerStyle(YouTubePlayer.PlayerStyle.CHROMELESS);
+
+            player.setPlayerStyle(YouTubePlayer.PlayerStyle.DEFAULT);
+
+            // this is set to CROMELESS all controls will br hidden.
         }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == RECOVERY_DIALOG_REQUEST) {
-            // Retry initialization if user performed a recovery action
-            getYouTubePlayerProvider().initialize(Config.YOUTUBE_KEY, this);
-        }
-    }
-
-    private YouTubePlayer.Provider getYouTubePlayerProvider() {
-        return (YouTubePlayerView) findViewById(R.id.youtube_view);
-    }
-
-    private boolean isGooglePlayServicesAvailable() {
-        GoogleApiAvailability apiAvailability =
-                GoogleApiAvailability.getInstance();
-        final int connectionStatusCode =
-                apiAvailability.isGooglePlayServicesAvailable(this);
-        return connectionStatusCode == ConnectionResult.SUCCESS;
-    }
-
-    private void acquireGooglePlayServices() {
-        GoogleApiAvailability apiAvailability =
-                GoogleApiAvailability.getInstance();
-        final int connectionStatusCode =
-                apiAvailability.isGooglePlayServicesAvailable(this);
-        if (apiAvailability.isUserResolvableError(connectionStatusCode)) {
-            showGooglePlayServicesAvailabilityErrorDialog(connectionStatusCode);
-        }
-    }
-
-    void showGooglePlayServicesAvailabilityErrorDialog(
-            final int connectionStatusCode) {
-        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
-        Dialog dialog = apiAvailability.getErrorDialog(
-                LandingActivity.this,
-                connectionStatusCode,
-                REQUEST_GOOGLE_PLAY_SERVICES);
-        dialog.show();
     }
 
 
     public void subscribe(View view) {
+        getResultsFromApi();
+    }
+
+    private void getResultsFromApi() {
         if (!isGooglePlayServicesAvailable()) {
             acquireGooglePlayServices();
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
-        } else if (!isDeviceOnline()) {
-            mOutputText.setText("No network connection available.");
         } else {
-            new MakeRequestTask(mCredential).execute();
+
+//            subscribeYouTubeChannel(mCredential, channelId, this);
         }
+
     }
 
+    public void subscribeYouTubeChannel(GoogleAccountCredential mCredential, String channelId, LandingActivity landingACtivity) {
+        new MakeRequestTask(mCredential,channelId,landingACtivity).execute();
+    }
 
-    /**
-     * Attempts to set the account used with the API credentials. If an account
-     * name was previously saved it will use that one; otherwise an account
-     * picker dialog will be shown to the user. Note that the setting the
-     * account to use with the credentials object requires the app to have the
-     * GET_ACCOUNTS permission, which is requested here if it is not already
-     * present. The AfterPermissionGranted annotation indicates that this
-     * function will be rerun automatically whenever the GET_ACCOUNTS permission
-     * is granted.
-     */
-    @AfterPermissionGranted(REQUEST_PERMISSION_GET_ACCOUNTS)
     private void chooseAccount() {
         if (EasyPermissions.hasPermissions(
                 this, android.Manifest.permission.GET_ACCOUNTS)) {
@@ -189,87 +152,95 @@ public class LandingActivity extends YouTubeBaseActivity implements YouTubePlaye
             // Request the GET_ACCOUNTS permission via a user dialog
             EasyPermissions.requestPermissions(
                     this,
-                    "This app needs to access your Google account (via Contacts).",
-                    REQUEST_PERMISSION_GET_ACCOUNTS,
-                    Manifest.permission.GET_ACCOUNTS);
+                    "This app needs to access your Google account for YouTube channel subscription.",
+                    REQUEST_PERMISSION_GET_ACCOUNTS, android.Manifest.permission.GET_ACCOUNTS);
         }
     }
 
-    private void getResultsFromApi() {
-        if (! isGooglePlayServicesAvailable()) {
-            acquireGooglePlayServices();
-        } else if (mCredential.getSelectedAccountName() == null) {
-            chooseAccount();
-        } else if (! isDeviceOnline()) {
-            mOutputText.setText("No network connection available.");
-        } else {
-            new MakeRequestTask(mCredential).execute();
+
+    private void acquireGooglePlayServices() {
+        GoogleApiAvailability apiAvailability =
+                GoogleApiAvailability.getInstance();
+        final int connectionStatusCode =
+                apiAvailability.isGooglePlayServicesAvailable(this);
+        if (apiAvailability.isUserResolvableError(connectionStatusCode)) {
+            showGooglePlayServicesAvailabilityErrorDialog(connectionStatusCode);
         }
+
     }
 
-    private boolean isDeviceOnline() {
-        ConnectivityManager connMgr =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-        return (networkInfo != null && networkInfo.isConnected());
+    private void showGooglePlayServicesAvailabilityErrorDialog(int connectionStatusCode) {
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        Dialog dialog = apiAvailability.getErrorDialog(
+                LandingActivity.this,
+                connectionStatusCode,
+                REQUEST_GOOGLE_PLAY_SERVICES);
+        dialog.show();
+
     }
 
-    /**
-     * An asynchronous task that handles the YouTube Data API call.
-     * Placing the API calls in their own task ensures the UI stays responsive.
-     */
-    private class MakeRequestTask extends AsyncTask<Void, Void, List<String>> {
+    private boolean isGooglePlayServicesAvailable() {
+        GoogleApiAvailability apiAvailability =
+                GoogleApiAvailability.getInstance();
+        final int connectionStatusCode =
+                apiAvailability.isGooglePlayServicesAvailable(this);
+        return connectionStatusCode == ConnectionResult.SUCCESS;
+
+    }
+
+    private class MakeRequestTask extends AsyncTask<Object, Object, Subscription> {
         private com.google.api.services.youtube.YouTube mService = null;
         private Exception mLastError = null;
+        private String channelId;
 
-        MakeRequestTask(GoogleAccountCredential credential) {
+        MakeRequestTask(GoogleAccountCredential credential, String channelId, LandingActivity landingACtivity) {
+            this.channelId = channelId;
             HttpTransport transport = AndroidHttp.newCompatibleTransport();
             JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
             mService = new com.google.api.services.youtube.YouTube.Builder(
                     transport, jsonFactory, credential)
-                    .setApplicationName("YouTube Data API Android Quickstart")
+                    .setApplicationName(landingACtivity.getResources().getString(R.string.app_name))
                     .build();
         }
 
 
-
-        /**
-         * Background task to call YouTube Data API.
-         * @param params no parameters needed for this task.
-         */
         @Override
-        protected List<String> doInBackground(Void... params) {
+        protected Subscription doInBackground(Object... params) {
+
+            Subscription response = null;
+
+            HashMap<String, String> parameters = new HashMap<>();
+            parameters.put("part", "snippet");
+
+
+            Subscription subscription = new Subscription();
+            SubscriptionSnippet snippet = new SubscriptionSnippet();
+            ResourceId resourceId = new ResourceId();
+            resourceId.set("channelId", channelId);
+            resourceId.set("kind", "youtube#channel");
+
+            snippet.setResourceId(resourceId);
+            subscription.setSnippet(snippet);
+
+            YouTube.Subscriptions.Insert subscriptionsInsertRequest = null;
             try {
-                return getDataFromApi();
-            } catch (Exception e) {
-                mLastError = e;
-                cancel(true);
-                return null;
+                subscriptionsInsertRequest = mService.subscriptions().insert(parameters.get("part").toString(), subscription);
+                response = subscriptionsInsertRequest.execute();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+
+            return response;
         }
 
-        /**
-         * Fetch information about the "GoogleDevelopers" YouTube channel.
-         * @return List of Strings containing information about the channel.
-         * @throws IOException
-         */
-        private List<String> getDataFromApi() throws IOException {
-            // Get a list of up to 10 files.
-            List<String> channelInfo = new ArrayList<String>();
-            ChannelListResponse result = mService.channels().list("snippet,contentDetails,statistics")
-                    .setForUsername("GoogleDevelopers")
-                    .execute();
-            List<Channel> channels = result.getItems();
-            if (channels != null) {
-                Channel channel = channels.get(0);
-                channelInfo.add("This channel's ID is " + channel.getId() + ". " +
-                        "Its title is '" + channel.getSnippet().getTitle() + ", " +
-                        "and it has " + channel.getStatistics().getViewCount() + " views.");
+        @Override
+        protected void onPostExecute(Subscription subscription) {
+            super.onPostExecute(subscription);
+            if(subscription!=null){
+//                view.onSubscribetionSuccess(subscription.getSnippet().getTitle());
+            }else {
+//                view.onSubscribetionFail();
             }
-            return channelInfo;
         }
-
-
-       
     }
-}
+    }
