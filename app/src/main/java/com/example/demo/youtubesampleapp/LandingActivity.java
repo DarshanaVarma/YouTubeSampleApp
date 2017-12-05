@@ -34,8 +34,12 @@ import com.google.api.services.youtube.model.SubscriptionSnippet;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
 import pub.devrel.easypermissions.EasyPermissions;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -56,7 +60,7 @@ public class LandingActivity extends YouTubeBaseActivity implements YouTubePlaye
     private static final String PREF_ACCOUNT_NAME = "accountName";
     private TextView mOutputText;
     private static Retrofit retrofit = null;
-
+    private ApiInterface apiInterface;
 
 
     @Override
@@ -68,6 +72,7 @@ public class LandingActivity extends YouTubeBaseActivity implements YouTubePlaye
         setContentView(R.layout.activity_landing);
         youTubeView = (YouTubePlayerView) findViewById(R.id.youtube_view);
         mOutputText = (TextView) findViewById(R.id.mOutputText);
+        getDetailsOfVideo();
 
 
 
@@ -241,6 +246,54 @@ public class LandingActivity extends YouTubeBaseActivity implements YouTubePlaye
             }else {
 //                view.onSubscribetionFail();
             }
+        }
+    }
+
+
+   public void getDetailsOfVideo()
+    {
+        Retrofit retrofit = null;
+
+
+        if (retrofit==null) {
+            retrofit = new Retrofit.Builder()
+                    .baseUrl("https://www.googleapis.com/youtube/v3/")
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build();
+
+
+
+            Map<String,String> params = new HashMap<>();
+            params.put("part","contentDetails,snippet,statistics");
+            params.put("key", Config.YOUTUBE_KEY);
+            params.put("fields","items(id,snippet,contentDetails,statistics)");
+            params.put("id",Config.YOUTUBE_VIDEO_CODE);
+            final ApiInterface apiInterface = APIClient.getAPIClient();
+
+            Call<VideoDetailsPojo> call = apiInterface.getYouTubeDetail(params);
+            call.enqueue(new Callback<VideoDetailsPojo>() {
+                @Override
+                public void onResponse(Call<VideoDetailsPojo> call, Response<VideoDetailsPojo> response) {
+                    if(response.body()!=null){
+                        Toast.makeText(LandingActivity.this, "Success", Toast.LENGTH_SHORT).show();
+                    }
+                    else {
+//                        view.errorToLoad();
+                        Toast.makeText(LandingActivity.this, "Fail1", Toast.LENGTH_SHORT).show();
+
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<VideoDetailsPojo> call, Throwable t) {
+//                    view.errorToLoad();
+                    Toast.makeText(LandingActivity.this, "Fail2", Toast.LENGTH_SHORT).show();
+
+                }
+            });
+
+
+
         }
     }
     }
